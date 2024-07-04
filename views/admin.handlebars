@@ -1,0 +1,100 @@
+{{! Remueve la estructura básica de HTML ya que será proporcionada por el layout }}
+<h1>Skate Park - Administración</h1>
+
+<div class="py-4">
+  <h2>Gestión de Participantes</h2>
+  <hr class="w-50">
+
+  <table class="table table-dark table-striped">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Foto</th>
+        <th scope="col">Nombre</th>
+        <th scope="col">Años de experiencia</th>
+        <th scope="col">Especialidad</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each skaters}}
+      <tr>
+        <th scope="row">{{this.id}}</th>
+        <td><div style="background-image: url('{{this.foto}}'); width: 60px; height: 60px; background-size: cover;"></div></td>
+        <td>{{this.nombre}}</td>
+        <td>{{this.anos_experiencia}}</td>
+        <td>{{this.especialidad}}</td>
+        <td>
+          <input type="checkbox" {{#ifCond this.estado '==' 'Aprobado'}}checked{{/ifCond}} data-email="{{this.email}}" data-nombre="{{this.nombre}}" data-anos_experiencia="{{this.anos_experiencia}}" data-especialidad="{{this.especialidad}}" class="estado-checkbox">
+        </td>
+        <td>
+          <button class="btn btn-danger eliminar-btn" data-email="{{this.email}}">Eliminar</button>
+        </td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  $(document).ready(function() {
+    const token = localStorage.getItem('token');
+    const socket = io();
+
+    socket.on('updateList', function() {
+      alert('Lista actualizada');
+      location.reload();
+    });
+
+    $('.estado-checkbox').on('change', function() {
+      const checkbox = $(this);
+      const email = checkbox.data('email');
+      const nombre = checkbox.data('nombre');
+      const anos_experiencia = checkbox.data('anos_experiencia');
+      const especialidad = checkbox.data('especialidad');
+      const estado = checkbox.is(':checked') ? 'Aprobado' : 'En revisión';
+
+      $.ajax({
+        url: `/api/skaters/email/${email}`,
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        contentType: 'application/json',
+        data: JSON.stringify({ nombre, anos_experiencia, especialidad, estado }),
+        success: function(response) {
+          alert('Estado actualizado');
+          socket.emit('estadoCambiado');
+        },
+        error: function(xhr) {
+          alert('Error al actualizar el estado: ' + xhr.responseText);
+          checkbox.prop('checked', !checkbox.is(':checked')); // Revertir el checkbox en caso de error
+        }
+      });
+    });
+
+    $('.eliminar-btn').on('click', function() {
+      const email = $(this).data('email');
+      if (confirm('¿Estás seguro de que quieres eliminar este skater?')) {
+        $.ajax({
+          url: `/api/skaters/email/${email}`,
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          success: function(response) {
+            alert('Skater eliminado');
+            socket.emit('skaterEliminado');
+            location.reload();
+          },
+          error: function(xhr) {
+            alert('Error al eliminar el skater: ' + xhr.responseText);
+          }
+        });
+      }
+    });
+  });
+</script>

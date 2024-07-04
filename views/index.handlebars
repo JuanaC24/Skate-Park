@@ -1,0 +1,76 @@
+<!-- index.handlebars -->
+<h1>Skate Park</h1>
+
+<div class="py-4">
+  <h2>Lista de participantes</h2>
+  <hr />
+  <table class="table table-dark table-striped">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Foto</th>
+        <th scope="col">Nombre</th>
+        <th scope="col">Años de experiencia</th>
+        <th scope="col">Especialidad</th>
+        <th scope="col">Estado</th>
+      </tr>
+    </thead>
+    <tbody id="skater-list">
+      {{#each skaters}}
+      <tr id="skater-{{this.id}}">
+        <th scope="row">{{this.id}}</th>
+        <td><div style="background-image: url('{{this.foto}}'); width: 60px; height: 60px; background-size: cover;"></div></td>
+        <td>{{this.nombre}}</td>
+        <td>{{this.anos_experiencia}}</td>
+        <td>{{this.especialidad}}</td>
+        <td class="{{#ifCond this.estado '==' 'Aprobado'}}aprobado{{else}}en-revision{{/ifCond}}">
+          {{#ifCond this.estado '==' 'Aprobado'}}Aprobado{{else}}En revisión{{/ifCond}}
+        </td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <a href="/login">Iniciar Sesión</a> |
+  <a href="/registro">Registrarme</a>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  $(document).ready(function() {
+    const socket = io();
+
+    function addSkater(skater) {
+      const row = `
+        <tr id="skater-${skater.id}">
+          <th scope="row">${skater.id}</th>
+          <td><div style="background-image: url('${skater.foto}'); width: 60px; height: 60px; background-size: cover;"></div></td>
+          <td>${skater.nombre}</td>
+          <td>${skater.anos_experiencia}</td>
+          <td>${skater.especialidad}</td>
+          <td class="${skater.estado === 'Aprobado' ? 'aprobado' : 'en-revision'}">
+            ${skater.estado === 'Aprobado' ? 'Aprobado' : 'En revisión'}
+          </td>
+        </tr>
+      `;
+      $('#skater-list').append(row);
+    }
+
+    socket.on('nuevoSkater', function(skater) {
+      addSkater(skater);
+    });
+
+    socket.on('skaterActualizado', function(skater) {
+      const row = $(`#skater-${skater.id}`);
+      row.find('td:nth-child(3)').text(skater.nombre);
+      row.find('td:nth-child(4)').text(skater.anos_experiencia);
+      row.find('td:nth-child(5)').text(skater.especialidad);
+      row.find('td:nth-child(6)').text(skater.estado === 'Aprobado' ? 'Aprobado' : 'En revisión');
+      row.find('td:nth-child(6)').attr('class', skater.estado === 'Aprobado' ? 'aprobado' : 'en-revision');
+    });
+
+    socket.on('skaterEliminado', function({ email }) {
+      $(`#skater-${email}`).remove();
+    });
+  });
+</script>
